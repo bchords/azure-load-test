@@ -20,9 +20,9 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: azure/cli@v2
+      - uses: Azure/cli@v2
         with:
-          inlineScript: az webapp deployment source config-zip --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src ../app.zip --slot staging
+          inlineScript: az webapp deploy --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path app.zip --slot staging
       - name: Install Load Testing Extension
         run: az extension add --name load --yes
       - run: az load-test run --resource-group ${{ env.RESOURCE_GROUP }} --load-test-resource your-load-testing-resource --test-id ebd72e5b-7599-4d82-bfaa-c86dac638005 --config-file config.yml --env HTTPSample.domain=https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net
