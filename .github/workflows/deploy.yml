@@ -2,16 +2,13 @@ name: wk1
 on:
   pull_request:
     branches: [main]
-
 permissions:
   id-token: write
   contents: read
-
 env:
   AZURE_WEBAPP_NAME: my-web-app-2025
   RESOURCE_GROUP: my-web-app-2025_group
   LOAD_TEST_RESOURCE: load-testing-resource-name
-
 jobs:
   complete-pipeline:
     runs-on: ubuntu-latest
@@ -23,9 +20,10 @@ jobs:
         dotnet-version: '8.0.x'
     - run: dotnet restore
     - run: dotnet build ./az2006webapp.sln --configuration Release
-    - run: |
-        dotnet publish ./az2006webapp.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
-        cd ${{env.DOTNET_ROOT}}/myapp
+    - name: Publish and package app
+      run: |
+        dotnet publish ./az2006webapp.csproj -c Release -o ./publish
+        cd ./publish
         zip -r ../app.zip .
     
     # Deploy to staging
@@ -34,22 +32,27 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    - uses: Azure/cli@v2
+    - uses: azure/cli@v2
       with:
-        inlineScript: az webapp deploy --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path ${{env.DOTNET_ROOT}}/app.zip --type zip --slot staging
+        inlineScript: |
+          az webapp deployment source config-zip \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --src app.zip \
+            --slot staging
     
     # Wait and test staging
     - run: sleep 60
     - uses: azure/load-testing@v1.1.27
       with:
         loadTestConfigFile: 'config.yaml'
-        loadTestResource: ${{ env.LOAD_TEST_RESOURCE}}
+        loadTestResource: ${{ env.LOAD_TEST_RESOURCE }}
         resourceGroup: ${{ env.RESOURCE_GROUP }}
         env: |
           [
             {
-            "name": "webapp",
-            "value": "${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net"
+              "name": "webapp",
+              "value": "https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net"
             }
           ]
     
@@ -58,4 +61,4 @@ jobs:
       if: always()
       with:
         name: loadTestResults
-        path: ${{github.workspace}}/loadTest
+        path: ${{ github.workspace }}/loadTest
