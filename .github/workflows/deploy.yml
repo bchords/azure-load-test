@@ -20,7 +20,7 @@ jobs:
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: Azure/cli@v2
+      - uses: azure/cli@v2
         with:
           inlineScript: az webapp deploy --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path app.zip --slot staging
       - name: Install Load Testing Extension
