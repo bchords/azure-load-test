@@ -2,60 +2,36 @@ name: wk1
 on:
   pull_request:
     branches: [main]
-
-permissions:
-  id-token: write
-  contents: read
-
+    paths: [staging/**]
 env:
   AZURE_WEBAPP_NAME: my-web-app-2025
   RESOURCE_GROUP: my-web-app-2025_group
-  LOAD_TEST_RESOURCE: load-testing-resource-name
-
 jobs:
   complete-pipeline:
     runs-on: ubuntu-latest
     steps:
-    # Build .NET app
     - uses: actions/checkout@v4
     - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-    - run: dotnet restore
-    - run: dotnet build ./az2006webapp.sln --configuration Release
     - run: |
-        dotnet publish ./az2006webapp.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
-        cd ${{env.DOTNET_ROOT}}/myapp
-        zip -r ../app.zip .
-    
-    # Deploy to staging
+        dotnet publish ./az2006webapp.csproj -c Release -o ./publish
+        cd ./publish && zip -r ../app.zip .
     - uses: azure/login@v2
       with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    - uses: Azure/cli@v2
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - uses: azure/cli@v2
       with:
-        inlineScript: az webapp deploy --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path ${{env.DOTNET_ROOT}}/app.zip --type zip --slot staging
-    
-    # Wait and test staging
-    - run: sleep 60
-    - uses: azure/load-testing@v1.1.27
+        inlineScript: az webapp deployment source config-zip --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src app.zip --slot staging
+    - uses: azure/load-testing@v1
       with:
-        loadTestConfigFile: 'config.yaml'
-        loadTestResource: ${{ env.LOAD_TEST_RESOURCE}}
+        loadTestConfigFile: 'config.yml'
+        loadTestResource: 'test1.jmx'
         resourceGroup: ${{ env.RESOURCE_GROUP }}
         env: |
-          [
-            {
-            "name": "webapp",
-            "value": "${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net"
-            }
-          ]
-    
-    # Upload results
+          HTTPSample.domain=https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net
     - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: loadTestResults
-        path: ${{github.workspace}}/loadTest
+        path: loadTest/results.zip
