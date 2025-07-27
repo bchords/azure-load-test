@@ -2,7 +2,7 @@ name: wk1
 on:
   pull_request:
     branches: [main]
-    paths: [staging/**]
+    
 env:
   AZURE_WEBAPP_NAME: my-web-app-2025
   RESOURCE_GROUP: my-web-app-2025_group
@@ -35,3 +35,4 @@ jobs:
       with:
         name: loadTestResults
         path: loadTest/results.zip
+
