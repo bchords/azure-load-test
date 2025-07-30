@@ -25,7 +25,7 @@ jobs:
           inlineScript: az webapp deploy --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path app.zip --slot staging
       - name: Install Load Testing Extension
         run: az extension add --name load --yes
-      - run: az load-test run --resource-group ${{ env.RESOURCE_GROUP }} --load-test-resource your-load-testing-resource --test-id ebd72e5b-7599-4d82-bfaa-c86dac638005 --config-file config.yml --env HTTPSample.domain=https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net
+      - run: az load test-run --resource-group ${{ env.RESOURCE_GROUP }} --load-test-resource your-load-testing-resource --test-id ebd72e5b-7599-4d82-bfaa-c86dac638005 --config-file config.yml --env HTTPSample.domain=https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net
       - uses: actions/upload-artifact@v4
         if: always()
         with:
